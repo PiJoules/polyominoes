@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 class Pattern():
-	def __init__(self, width, coords, marker, empty):
+	def __init__(self, width, coords=[], marker='X', empty=' '):
 		self.coords = coords # list of tuples
 		self.w = width
 		self.marker = marker
@@ -58,6 +58,55 @@ class Pattern():
 
 		return possible_squares
 
+	def is_transformation_of(self, pattern):
+		if self.w != pattern.w:
+			return False
+
+		variations = pattern.get_variations()
+		for variation in variations:
+			if self.equals(variation):
+				return True
+
+		return False
+
+	def equals(self, pattern):
+		coords = pattern.get_coords()
+		if len(coords) != len(self.coords):
+			return False
+
+		for coord in coords:
+			if not coord in self.coords:
+				return False
+
+		return True
+
+	def get_variations(self):
+		variations = []
+		rotation = self.clone()
+		for i in range(4):
+			rotation = rotation.rotated_pattern()
+			reflection = rotation.reflected_pattern()
+			variations.append(rotation.normalized())
+			variations.append(reflection.normalized())
+		return variations
+
+	def normalized(self):
+		x0 = min(self.coords, key=lambda coord: coord[0])[0]
+		y0 = min(self.coords, key=lambda coord: coord[1])[1]
+		return Pattern(self.w, [ (x-x0, y-y0) for x,y in self.coords ], self.marker, self.empty)
+
+	"""
+	Return a copy of the pattern but rotated 90 deg. clockwise
+	"""
+	def rotated_pattern(self):
+		return Pattern(self.w, [ (y, -x) for x,y in self.coords ], self.marker, self.empty)
+
+	"""
+	Return a copy of the pattern but reflected across the y-axis
+	"""
+	def reflected_pattern(self):
+		return Pattern(self.w, [ (-x, y) for x,y in self.coords ], self.marker, self.empty)
+
 class Polyomino():
 
 	def __init__(self, n=4, marker='X', empty=' '):
@@ -65,6 +114,7 @@ class Polyomino():
 		self.marker = marker
 		self.empty = empty
 		self.patterns = self.find_patterns(n)
+		self.remove_duplicates()
 
 	"""
 	Find patterns by adding an adjascent square to the map of
@@ -100,35 +150,28 @@ class Polyomino():
 
 		return possible_patterns
 
-	# """
-	# A pattern is a duplicate if it can look like an existing one
-	# either by translation, rotation, or reflection. (Translation 
-	# in this case can be ignored since all patterns will start on
-	# the upper left most corner.)
-	# """
-	# def pattern_does_exist(self, pat1):
-	# 	for pat2 in self.patterns:
-	# 		if self.patterns_are_equal(pat1, pat2):
-	# 			return True
-	# 	return False
+	def remove_duplicates(self):
+		for i in range(len(self.patterns)):
+			for j in range(len(self.patterns)-1, i, -1):
+				if self.patterns[i].is_transformation_of(self.patterns[j]):
+					del self.patterns[j]
 
-	# def patterns_are_equal(self, pat1, pat2):
-	# 	# Check each rotation, and each reflection at each rotation
-	# 	for i in range(4):
-
-	# 	return True
-
-	# def extended_map(self):
-	# 	w = self.n
-	# 	return [[empty]*2*w]*w*w
-
-	# def rotation(self, pattern):
-	# 	blank_grid = self.extended_map()
+	"""
+	A pattern is a duplicate if it can look like an existing one
+	either by translation, rotation, or reflection. (Translation 
+	in this case can be ignored since all patterns will start on
+	the upper left most corner.)
+	"""
+	def pattern_does_exist(self, pat, possible_patterns):
+		for pat2 in possible_patterns:
+			if pat.is_transformation_of(pat2):
+				return True
+		return False
 
 	def print_results(self):
 		for pattern in self.patterns:
 			print "Pattern:"
 			for row in pattern.get_grid():
-				print row
+				print "".join(row)
 			print ""
 
