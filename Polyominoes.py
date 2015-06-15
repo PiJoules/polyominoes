@@ -1,11 +1,69 @@
 from copy import deepcopy
 
-class Polyomino():
-	marker = 'X'
-	empty = ' '
+class Pattern():
+	def __init__(self, width, coords, marker, empty):
+		self.coords = coords # list of tuples
+		self.w = width
+		self.marker = marker
+		self.empty = empty
 
-	def __init__(self, n):
+	def get_coords(self):
+		return self.coords
+
+	def add_coord(self, x, y):
+		self.coords.append( (x,y) )
+
+	def get_grid(self):
+		w = self.w
+		grid = [[self.empty for x in range(w)] for y in range(w)]
+		for coord in self.coords:
+			x = coord[0]
+			y = coord[1]
+			grid[y][x] = self.marker
+		return grid
+
+	# Increae the size of the grid by 1
+	def increase_size(self, amount=1):
+		self.w += amount
+
+	def clone(self):
+		return Pattern(self.w, deepcopy(self.coords), self.marker, self.empty)
+
+	def pretty_print_grid(self):
+		grid = self.get_grid()
+		for row in grid:
+			print row
+
+	"""
+	Return an array of coordinates of all possible spaces adascent to an existing marker
+	"""
+	def get_possible_squares(self):
+		marker = self.marker
+		empty = self.empty
+		w = self.w
+
+		possible_squares = [] # array of coordinates
+		coords = self.coords
+		for coord in coords:
+			x = coord[0]
+			y = coord[1]
+			if y > 0 and not (x, y-1) in coords:
+				possible_squares.append( (x, y-1) )
+			if y < w-1 and not (x, y+1) in coords:
+				possible_squares.append( (x, y+1) )
+			if x > 0 and not (x-1, y) in coords:
+				possible_squares.append( (x-1, y) )
+			if x < w-1 and not (x+1, y) in coords:
+				possible_squares.append( (x+1, y) )
+
+		return possible_squares
+
+class Polyomino():
+
+	def __init__(self, n=4, marker='X', empty=' '):
 		self.n = n
+		self.marker = marker
+		self.empty = empty
 		self.patterns = self.find_patterns(n)
 
 	"""
@@ -23,23 +81,21 @@ class Polyomino():
 
 		# Stopping condition
 		if n <= 1:
-			return [ [[marker]] ]
+			return [ Pattern(1, [(0,0)], marker, empty) ]
 
 		patterns = self.find_patterns(n-1)
 
 		# Increae the size of each grid by 1
 		for i in range(len(patterns)):
-			for y in range(n-1):
-				patterns[i][y].append(empty)
-			patterns[i].append( [empty]*n )
+			patterns[i].increase_size()
 
 		for pattern in patterns:
-			possible_squares = self.get_possible_squares(pattern)
+			possible_squares = pattern.get_possible_squares()
 			for square in possible_squares:
-				pattern_clone = deepcopy(pattern)
+				pattern_clone = pattern.clone()
 				x = square[0]
 				y = square[1]
-				pattern_clone[y][x] = marker
+				pattern_clone.add_coord(x, y)
 				possible_patterns.append( pattern_clone )
 
 		return possible_patterns
@@ -57,35 +113,22 @@ class Polyomino():
 	# 	return False
 
 	# def patterns_are_equal(self, pat1, pat2):
-	# 	return self.patterns_are_rotations(pat1, pat2) and self.patterns
+	# 	# Check each rotation, and each reflection at each rotation
+	# 	for i in range(4):
 
-	"""
-	Return an array of coordinates of all possible spaces adascent to an existing marker
-	"""
-	def get_possible_squares(self, pattern):
-		marker = self.marker
-		empty = self.empty
+	# 	return True
 
-		possible_squares = [] # array of coordinates
-		w = len(pattern)
-		for y in range(w):
-			for x in range(w):
-				if pattern[y][x] == marker:
-					if y > 0 and pattern[y-1][x] == empty:
-						possible_squares.append( (x, y-1) )
-					if y < w-1 and pattern[y+1][x] == empty:
-						possible_squares.append( (x, y+1) )
-					if x > 0 and pattern[y][x-1] == empty:
-						possible_squares.append( (x-1, y) )
-					if x < w-1 and pattern[y][x+1] == empty:
-						possible_squares.append( (x+1, y) )
+	# def extended_map(self):
+	# 	w = self.n
+	# 	return [[empty]*2*w]*w*w
 
-		return possible_squares
+	# def rotation(self, pattern):
+	# 	blank_grid = self.extended_map()
 
 	def print_results(self):
 		for pattern in self.patterns:
 			print "Pattern:"
-			for row in pattern:
+			for row in pattern.get_grid():
 				print row
 			print ""
 
